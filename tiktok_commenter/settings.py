@@ -14,7 +14,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-p+4r#@c_a3=ir8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['solforge.live', 'www.solforge.live', '3.144.42.136', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['solforge.live', 'www.solforge.live', '18.188.57.138', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [

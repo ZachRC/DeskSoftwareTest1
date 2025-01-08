@@ -3,6 +3,6 @@ djangorestframework
 django-cors-headers
 stripe
 python-dotenv
-psycopg2-binary
 gunicorn
+psycopg2-binary
 whitenoise

@@ -71,10 +71,11 @@ After=network.target
 User=ubuntu
 Group=www-data
 WorkingDirectory=/var/www/solforge
+RuntimeDirectory=gunicorn
 ExecStart=/var/www/solforge/venv/bin/gunicorn \
     --access-logfile - \
     --workers 3 \
-    --bind unix:/run/gunicorn.sock \
+    --bind unix:/run/gunicorn/gunicorn.sock \
     tiktok_commenter.wsgi:application
 
 [Install]

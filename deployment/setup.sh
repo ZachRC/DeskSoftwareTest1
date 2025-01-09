@@ -72,15 +72,36 @@ User=ubuntu
 Group=www-data
 WorkingDirectory=/var/www/solforge
 RuntimeDirectory=gunicorn
+RuntimeDirectoryMode=0775
+PIDFile=/run/gunicorn/pid
+Environment="PATH=/var/www/solforge/venv/bin"
+Environment="PYTHONPATH=/var/www/solforge"
+Environment="DJANGO_SETTINGS_MODULE=tiktok_commenter.settings"
 ExecStart=/var/www/solforge/venv/bin/gunicorn \
-    --access-logfile - \
+    --error-logfile /var/log/gunicorn/error.log \
+    --access-logfile /var/log/gunicorn/access.log \
     --workers 3 \
     --bind unix:/run/gunicorn/gunicorn.sock \
+    --pid /run/gunicorn/pid \
     tiktok_commenter.wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
 EOL
+
+# Create log directory for Gunicorn
+sudo mkdir -p /var/log/gunicorn
+sudo chown -R ubuntu:www-data /var/log/gunicorn
+sudo chmod -R 775 /var/log/gunicorn
+
+# Create and set permissions for Gunicorn socket directory
+sudo mkdir -p /run/gunicorn
+sudo chown ubuntu:www-data /run/gunicorn
+sudo chmod 775 /run/gunicorn
 
 # Create static files directory
 mkdir -p staticfiles

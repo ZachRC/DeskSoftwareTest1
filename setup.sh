@@ -33,6 +33,14 @@ echo "Creating directories..."
 mkdir -p nginx/conf.d
 mkdir -p certbot/conf
 mkdir -p certbot/www
+mkdir -p static
+mkdir -p media
+mkdir -p staticfiles
+
+# Set proper permissions
+echo "Setting permissions..."
+sudo chown -R $USER:$USER .
+sudo chmod -R 755 .
 
 # Copy configuration files
 echo "Setting up configuration files..."
@@ -51,8 +59,9 @@ EOL
 echo "Initializing SSL certificates..."
 sudo certbot certonly --nginx -d solforge.live -d www.solforge.live
 
-# Start the application
-echo "Starting the application..."
+# Build and start the application
+echo "Building and starting the application..."
+sudo docker-compose build
 sudo docker-compose up -d
 
 echo "Setup completed successfully!"

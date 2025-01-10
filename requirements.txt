@@ -1,5 +1,8 @@
 Django
 djangorestframework
 django-cors-headers
-stripe
-python-dotenv
+dj-database-url
+psycopg2-binary
+gunicorn
+whitenoise
+requests

@@ -42,6 +42,11 @@ sudo apt-get install -y \
     certbot \
     python3-certbot-nginx
 
+# Stop and disable system Nginx
+echo "Stopping system Nginx..."
+sudo systemctl stop nginx
+sudo systemctl disable nginx
+
 # Start and enable Docker
 echo "Setting up Docker..."
 sudo systemctl start docker
@@ -77,11 +82,21 @@ DJANGO_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))
 DJANGO_DEBUG=0
 DATABASE_URL=postgres://postgres.bhryplxtproznrmtvvri:Zc1269zc!zc1269zc@aws-0-us-east-2.pooler.supabase.com:6543/postgres
 DOMAIN=solforge.live
+STRIPE_PUBLISHABLE_KEY=pk_test_51Qf59sQ7s3yogV6Hy36945QjOpHOOr2dRnre5KizxYsNloySglmBlQKQNszXCKwc1mYM6lOnAAFCrUCHUwg3tQaX00ZR7T9HAs
+STRIPE_SECRET_KEY=sk_test_51Qf59sQ7s3yogV6Heyj8Ow7cMLVZqMnMImarJ4EWQ8cO4aqHvndg6JEp4EzgE3iX07BPruJ438EG0Eno4B3KaEgy00ODJ1udAW
 EOL
+
+# Check if ports 80 and 443 are in use
+echo "Checking ports..."
+if sudo lsof -i :80 || sudo lsof -i :443; then
+    echo "Ports 80 or 443 are in use. Attempting to free them..."
+    sudo fuser -k 80/tcp
+    sudo fuser -k 443/tcp
+fi
 
 # Initialize SSL certificates
 echo "Initializing SSL certificates..."
-sudo certbot certonly --nginx -d solforge.live -d www.solforge.live
+sudo certbot certonly --standalone -d solforge.live -d www.solforge.live
 
 # Build and start the application
 echo "Building and starting the application..."

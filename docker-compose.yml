@@ -3,28 +3,22 @@ version: '3.8'
 services:
   web:
     build: .
-    command: gunicorn tiktok_commenter.wsgi:application --bind 0.0.0.0:8000
+    restart: always
+    env_file:
+      - .env
     volumes:
-      - .:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
-    expose:
-      - 8000
-    environment:
-      - DATABASE_URL=postgres://postgres.bhryplxtproznrmtvvri:Zc1269zc!zc1269zc@aws-0-us-east-2.pooler.supabase.com:6543/postgres
-      - DJANGO_SETTINGS_MODULE=tiktok_commenter.settings
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - DJANGO_DEBUG=0
+      - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
     depends_on:
       - redis
 
   nginx:
-    build: ./nginx
+    image: nginx:alpine
+    restart: always
     volumes:
-      - static_volume:/app/static
-      - media_volume:/app/media
-      - ./nginx/certbot/conf:/etc/letsencrypt
-      - ./nginx/certbot/www:/var/www/certbot
+      - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
+      - ./nginx:/etc/nginx/conf.d
     ports:
       - "80:80"
       - "443:443"
@@ -32,16 +26,8 @@ services:
       - web
 
   redis:
-    image: redis:6-alpine
-    ports:
-      - "6379:6379"
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - ./nginx/certbot/conf:/etc/letsencrypt
-      - ./nginx/certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    image: redis:alpine
+    restart: always
 
 volumes:
   static_volume:

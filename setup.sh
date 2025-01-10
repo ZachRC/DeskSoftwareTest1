@@ -94,24 +94,43 @@ if sudo lsof -i :80 || sudo lsof -i :443; then
     sudo fuser -k 443/tcp
 fi
 
-# Initialize SSL certificates
-echo "Initializing SSL certificates..."
-sudo certbot certonly --standalone -d solforge.live -d www.solforge.live
-
-# Build and start the application
+# Build and start the application with HTTP only
 echo "Building and starting the application..."
 sudo docker-compose build --no-cache
 sudo docker-compose up -d
 
-# Verify the application is running
-echo "Verifying application status..."
+# Wait for services to be up
+echo "Waiting for services to start..."
 sleep 10
-if sudo docker-compose ps | grep -q "Exit"; then
-    echo "Error: Some containers failed to start. Checking logs..."
-    sudo docker-compose logs
-    cleanup
-    exit 1
-fi
+
+# Generate SSL certificates
+echo "Generating SSL certificates..."
+sudo certbot certonly --webroot -w ./certbot/www -d solforge.live -d www.solforge.live --email your-email@example.com --agree-tos --no-eff-email
+
+# Create SSL configuration files
+echo "Creating SSL configuration files..."
+sudo mkdir -p certbot/conf
+sudo openssl dhparam -out certbot/conf/ssl-dhparams.pem 2048
+sudo cp /etc/letsencrypt/live/solforge.live/fullchain.pem certbot/conf/
+sudo cp /etc/letsencrypt/live/solforge.live/privkey.pem certbot/conf/
+
+# Create Nginx SSL options file
+cat > certbot/conf/options-ssl-nginx.conf << EOL
+ssl_session_cache shared:le_nginx_SSL:1m;
+ssl_session_timeout 1440m;
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";
+EOL
+
+# Enable HTTPS in Nginx config
+echo "Enabling HTTPS..."
+sed -i 's/# listen 443 ssl/listen 443 ssl/' nginx/conf.d/nginx.conf
+sed -i 's/# server {/server {/' nginx/conf.d/nginx.conf
+
+# Restart containers
+echo "Restarting containers with HTTPS enabled..."
+sudo docker-compose restart nginx
 
 echo "Setup completed successfully!"
 echo "Please ensure your DNS settings are configured correctly:"

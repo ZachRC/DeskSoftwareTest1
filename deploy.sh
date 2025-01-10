@@ -24,7 +24,7 @@ sudo systemctl stop nginx
 
 # Get SSL certificate using standalone mode
 if [ ! -d "/etc/letsencrypt/live/kingfakes.college" ]; then
-    sudo certbot certonly --standalone -d kingfakes.college -d www.kingfakes.college --agree-tos --email your-email@example.com --non-interactive
+    sudo certbot certonly --standalone -d kingfakes.college -d www.kingfakes.college --agree-tos --email zacharyrcherney@gmail.com --non-interactive
 fi
 
 # Create SSL directory and copy certificates

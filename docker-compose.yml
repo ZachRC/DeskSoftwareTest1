@@ -5,8 +5,8 @@ services:
     build: .
     command: gunicorn tiktok_commenter.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
     expose:
       - 8000
     environment:
@@ -15,11 +15,6 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_DEBUG=0
       - DOMAIN=solforge.live
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
     depends_on:
       - redis
@@ -27,25 +22,23 @@ services:
   nginx:
     build: ./nginx
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     ports:
       - "80:80"
       - "443:443"
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
     depends_on:
       - web
 
   redis:
     image: redis:alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     expose:
       - 6379
     restart: unless-stopped
@@ -55,12 +48,12 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    restart: unless-stopped
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email your-email@example.com -d solforge.live -d www.solforge.live --agree-tos --no-eff-email
+    depends_on:
+      - nginx
 
 volumes:
-  static_volume:
-  media_volume:
+  redis_data:
 
 networks:
   default:

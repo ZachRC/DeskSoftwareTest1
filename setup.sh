@@ -6,8 +6,8 @@ set -e
 # Cleanup function
 cleanup() {
     echo "Cleaning up..."
-    sudo docker-compose down 2>/dev/null || true
-    sudo docker system prune -f 2>/dev/null || true
+    sudo docker-compose down -v 2>/dev/null || true
+    sudo docker system prune -af --volumes
 }
 
 # Error handler
@@ -66,19 +66,19 @@ echo "Cloning repository..."
 git clone https://github.com/ZachRC/DeskSoftwareTest1.git webapp
 cd webapp
 
-# Create necessary directories
+# Create necessary directories with proper permissions
 echo "Creating directories..."
-mkdir -p nginx/conf.d
-mkdir -p certbot/conf
-mkdir -p certbot/www
-mkdir -p static
-mkdir -p media
-mkdir -p staticfiles
+mkdir -p nginx/conf.d \
+         certbot/conf \
+         certbot/www \
+         static \
+         media \
+         staticfiles
+chmod -R 755 .
 
 # Set proper permissions
 echo "Setting permissions..."
 sudo chown -R $USER:$USER .
-sudo chmod -R 755 .
 
 # Copy configuration files
 echo "Setting up configuration files..."
@@ -104,61 +104,43 @@ if sudo lsof -i :80 || sudo lsof -i :443; then
     sleep 5
 fi
 
-# Build and start the application with HTTP only
+# Pull Docker images first
+echo "Pulling Docker images..."
+sudo docker-compose pull
+
+# Build and start the application
 echo "Building and starting the application..."
 sudo docker-compose build --no-cache
-sudo docker-compose up -d
+sudo docker-compose up -d web redis nginx
 
 # Wait for services to be up
 echo "Waiting for services to start..."
-sleep 10
+sleep 15
 
-# Check if services are running
-echo "Checking service status..."
+# Check container status
+echo "Checking container status..."
 if ! sudo docker-compose ps | grep "Up" | grep -q "web"; then
-    echo "Web service failed to start. Checking logs..."
+    echo "Web container failed to start. Checking logs..."
     sudo docker-compose logs web
     cleanup
     exit 1
 fi
 
 if ! sudo docker-compose ps | grep "Up" | grep -q "nginx"; then
-    echo "Nginx service failed to start. Checking logs..."
+    echo "Nginx container failed to start. Checking logs..."
     sudo docker-compose logs nginx
     cleanup
     exit 1
 fi
 
-# Test the connection
-echo "Testing connection..."
-if ! curl -s -o /dev/null -w "%{http_code}" http://localhost:80 | grep -q "200\|301\|302"; then
-    echo "Connection test failed. Checking logs..."
-    sudo docker-compose logs
-    cleanup
-    exit 1
-fi
-
-echo "Setup completed successfully!"
-echo "Please ensure your DNS settings are configured correctly:"
-echo "A Record: @ -> 18.116.81.42"
-echo "A Record: www -> 18.116.81.42"
-echo "AAAA Record: @ -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
-echo "AAAA Record: www -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
-
-# Print service status
-echo -e "\nService Status:"
-sudo docker-compose ps
-
-# Generate SSL certificates
-echo "Generating SSL certificates..."
-sudo certbot certonly --webroot -w ./certbot/www -d solforge.live -d www.solforge.live --email your-email@example.com --agree-tos --no-eff-email
+# Run certbot
+echo "Setting up SSL certificates..."
+sudo docker-compose run --rm certbot
 
 # Create SSL configuration files
 echo "Creating SSL configuration files..."
 sudo mkdir -p certbot/conf
 sudo openssl dhparam -out certbot/conf/ssl-dhparams.pem 2048
-sudo cp /etc/letsencrypt/live/solforge.live/fullchain.pem certbot/conf/
-sudo cp /etc/letsencrypt/live/solforge.live/privkey.pem certbot/conf/
 
 # Create Nginx SSL options file
 cat > certbot/conf/options-ssl-nginx.conf << EOL
@@ -174,6 +156,17 @@ echo "Enabling HTTPS..."
 sed -i 's/# listen 443 ssl/listen 443 ssl/' nginx/conf.d/nginx.conf
 sed -i 's/# server {/server {/' nginx/conf.d/nginx.conf
 
-# Restart containers
-echo "Restarting containers with HTTPS enabled..."
-sudo docker-compose restart nginx 
+# Restart Nginx to apply SSL configuration
+echo "Restarting Nginx..."
+sudo docker-compose restart nginx
+
+# Final status check
+echo -e "\nFinal container status:"
+sudo docker-compose ps
+
+echo "Setup completed successfully!"
+echo "Please ensure your DNS settings are configured correctly:"
+echo "A Record: @ -> 18.116.81.42"
+echo "A Record: www -> 18.116.81.42"
+echo "AAAA Record: @ -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
+echo "AAAA Record: www -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b" 

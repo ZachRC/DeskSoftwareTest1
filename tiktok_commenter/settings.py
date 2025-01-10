@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-p+4r#@c_a3=ir81hm+t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['kingfakes.college', 'www.kingfakes.college', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['kingfakes.college', 'www.kingfakes.college', '3.142.54.165', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -59,11 +59,7 @@ MIDDLEWARE = [
 ]
 
 # CORS settings for desktop app
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "https://kingfakes.college",
-    "https://www.kingfakes.college",
-]
+CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
@@ -101,10 +97,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'postgres'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', ''),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'USER': os.getenv('DB_USER', 'postgres.bhryplxtproznrmtvvri'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'Zc1269zc!zc1269zc'),
+        'HOST': os.getenv('DB_HOST', 'aws-0-us-east-2.pooler.supabase.com'),
+        'PORT': os.getenv('DB_PORT', '6543'),
     }
 }
 
@@ -145,8 +141,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -174,3 +171,10 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# CORS settings for production
+CORS_ALLOWED_ORIGINS = [
+    'https://kingfakes.college',
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True

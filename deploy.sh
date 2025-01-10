@@ -1,32 +1,36 @@
 #!/bin/bash
 
-# Pull latest changes
+# Pull latest changes from git
 git pull origin main
 
-# Copy .env file if it doesn't exist
+# Copy environment file if it doesn't exist
 if [ ! -f .env ]; then
     cp .env.example .env
-    echo "Please update the .env file with your actual credentials"
+    echo "Please update .env file with your production settings"
     exit 1
 fi
 
-# Install or update dependencies
-pip install -r requirements.txt
+# Install or update certbot if needed
+if ! command -v certbot &> /dev/null; then
+    sudo yum install -y certbot python3-certbot-nginx
+fi
 
-# Add gunicorn and psycopg2-binary to requirements
-if ! grep -q "gunicorn" requirements.txt; then
-    echo "gunicorn" >> requirements.txt
+# Get SSL certificate if not already present
+if [ ! -d "/etc/letsencrypt/live/kingfakes.college" ]; then
+    sudo certbot certonly --nginx -d kingfakes.college -d www.kingfakes.college
 fi
-if ! grep -q "psycopg2-binary" requirements.txt; then
-    echo "psycopg2-binary" >> requirements.txt
-fi
+
+# Create SSL directory in nginx config if it doesn't exist
+sudo mkdir -p /etc/nginx/ssl/live/kingfakes.college
+sudo cp /etc/letsencrypt/live/kingfakes.college/fullchain.pem /etc/nginx/ssl/live/kingfakes.college/
+sudo cp /etc/letsencrypt/live/kingfakes.college/privkey.pem /etc/nginx/ssl/live/kingfakes.college/
 
 # Build and start Docker containers
 docker-compose down
 docker-compose build
 docker-compose up -d
 
-# Apply database migrations
+# Run migrations
 docker-compose exec web python manage.py migrate
 
 echo "Deployment completed successfully!" 

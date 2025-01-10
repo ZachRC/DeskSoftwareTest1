@@ -8,16 +8,14 @@ services:
       - .env
     volumes:
       - static_volume:/app/staticfiles
-      - media_volume:/app/mediafiles
-    depends_on:
-      - redis
+    expose:
+      - 8000
 
   nginx:
     image: nginx:alpine
     restart: always
     volumes:
       - static_volume:/app/staticfiles
-      - media_volume:/app/mediafiles
       - ./nginx:/etc/nginx/conf.d
     ports:
       - "80:80"
@@ -25,10 +23,5 @@ services:
     depends_on:
       - web
 
-  redis:
-    image: redis:alpine
-    restart: always
-
 volumes:
-  static_volume:
-  media_volume: 
+  static_volume: 

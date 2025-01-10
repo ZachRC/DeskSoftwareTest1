@@ -14,10 +14,15 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Install necessary packages without removing system packages
+# Stop and disable system Nginx
+echo "Stopping and disabling system Nginx..."
+sudo systemctl stop nginx || true
+sudo systemctl disable nginx || true
+
+# Install necessary packages
 echo "Installing necessary packages..."
 sudo yum update -y
-sudo yum install -y nginx
+sudo yum install -y certbot
 
 # Install Docker if not installed
 if ! command -v docker &> /dev/null; then
@@ -35,17 +40,12 @@ if ! command -v docker-compose &> /dev/null; then
     sudo chmod +x /usr/local/bin/docker-compose
 fi
 
-# Install certbot
-echo "Installing Certbot..."
-sudo yum install -y certbot python3-certbot-nginx
+# Stop and remove existing containers
+echo "Stopping existing containers..."
+docker-compose down -v || true
 
-# Stop services
-echo "Stopping services..."
-sudo systemctl stop nginx || true
-docker-compose down || true
-
-# Clean up any old containers and volumes
-echo "Cleaning up old containers and volumes..."
+# Clean up Docker system
+echo "Cleaning up Docker system..."
 docker system prune -f
 docker volume prune -f
 
@@ -56,14 +56,15 @@ if [ ! -d "/etc/letsencrypt/live/kingfakes.college" ]; then
 fi
 
 # Create SSL directory and copy certificates with proper permissions
+echo "Setting up SSL certificates..."
 sudo mkdir -p /etc/nginx/ssl/live/kingfakes.college
 sudo cp /etc/letsencrypt/live/kingfakes.college/fullchain.pem /etc/nginx/ssl/live/kingfakes.college/
 sudo cp /etc/letsencrypt/live/kingfakes.college/privkey.pem /etc/nginx/ssl/live/kingfakes.college/
 sudo chmod -R 755 /etc/nginx/ssl
-sudo chown -R nginx:nginx /etc/nginx/ssl
+sudo chown -R $USER:$USER /etc/nginx/ssl
 
 # Create directories and set permissions
-echo "Setting up directories and permissions..."
+echo "Setting up directories..."
 mkdir -p static staticfiles
 sudo chown -R $USER:$USER static staticfiles
 
@@ -79,6 +80,7 @@ max_attempts=5
 until docker-compose ps | grep "web" | grep "(healthy)" || [ $attempt -gt $max_attempts ]
 do
     echo "Attempt $attempt of $max_attempts: Waiting for web service to be healthy..."
+    docker-compose logs web
     sleep 30
     attempt=$((attempt + 1))
 done
@@ -95,17 +97,9 @@ docker-compose exec -T web python manage.py migrate
 echo "Collecting static files..."
 docker-compose exec -T web python manage.py collectstatic --noinput
 
-# Set proper permissions for static files
-sudo chown -R nginx:nginx staticfiles
-
-# Install and configure cron
-echo "Setting up cron jobs..."
-sudo yum install -y cronie
-sudo systemctl start crond
-sudo systemctl enable crond
-
 # Set up automatic certificate renewal
-(crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 0 * * * /usr/bin/certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
+echo "Setting up certificate renewal..."
+(crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 0 * * * /usr/bin/certbot renew --quiet --pre-hook 'docker-compose -f /home/ec2-user/webapp/docker-compose.yml down' --post-hook 'docker-compose -f /home/ec2-user/webapp/docker-compose.yml up -d'") | crontab -
 
 # Final status check
 echo "Checking final deployment status..."
@@ -128,13 +122,8 @@ To view logs: docker-compose logs
 To restart services: docker-compose restart
 "
 
-# Verify nginx configuration
-echo "Testing Nginx configuration..."
-sudo nginx -t
-
-# Start nginx if it's not running
-echo "Starting Nginx..."
-sudo systemctl start nginx
-sudo systemctl enable nginx
+# Test the website
+echo "Testing website accessibility..."
+curl -k -I https://localhost
 
 echo "Deployment process complete!" 

@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-p+4r#@c_a3=ir81hm+t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['solforge.live', 'www.solforge.live', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['kingfakes.college', 'www.kingfakes.college', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -61,8 +61,8 @@ MIDDLEWARE = [
 # CORS settings for desktop app
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "https://solforge.live",
-    "https://www.solforge.live",
+    "https://kingfakes.college",
+    "https://www.kingfakes.college",
 ]
 CORS_ALLOW_CREDENTIALS = True
 

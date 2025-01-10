@@ -40,7 +40,16 @@ sudo apt-get install -y \
     git \
     nginx \
     certbot \
-    python3-certbot-nginx
+    python3-certbot-nginx \
+    ufw \
+    curl
+
+# Configure firewall
+echo "Configuring firewall..."
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
 
 # Stop and disable system Nginx
 echo "Stopping system Nginx..."
@@ -92,6 +101,7 @@ if sudo lsof -i :80 || sudo lsof -i :443; then
     echo "Ports 80 or 443 are in use. Attempting to free them..."
     sudo fuser -k 80/tcp
     sudo fuser -k 443/tcp
+    sleep 5
 fi
 
 # Build and start the application with HTTP only
@@ -102,6 +112,42 @@ sudo docker-compose up -d
 # Wait for services to be up
 echo "Waiting for services to start..."
 sleep 10
+
+# Check if services are running
+echo "Checking service status..."
+if ! sudo docker-compose ps | grep "Up" | grep -q "web"; then
+    echo "Web service failed to start. Checking logs..."
+    sudo docker-compose logs web
+    cleanup
+    exit 1
+fi
+
+if ! sudo docker-compose ps | grep "Up" | grep -q "nginx"; then
+    echo "Nginx service failed to start. Checking logs..."
+    sudo docker-compose logs nginx
+    cleanup
+    exit 1
+fi
+
+# Test the connection
+echo "Testing connection..."
+if ! curl -s -o /dev/null -w "%{http_code}" http://localhost:80 | grep -q "200\|301\|302"; then
+    echo "Connection test failed. Checking logs..."
+    sudo docker-compose logs
+    cleanup
+    exit 1
+fi
+
+echo "Setup completed successfully!"
+echo "Please ensure your DNS settings are configured correctly:"
+echo "A Record: @ -> 18.116.81.42"
+echo "A Record: www -> 18.116.81.42"
+echo "AAAA Record: @ -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
+echo "AAAA Record: www -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
+
+# Print service status
+echo -e "\nService Status:"
+sudo docker-compose ps
 
 # Generate SSL certificates
 echo "Generating SSL certificates..."
@@ -130,11 +176,4 @@ sed -i 's/# server {/server {/' nginx/conf.d/nginx.conf
 
 # Restart containers
 echo "Restarting containers with HTTPS enabled..."
-sudo docker-compose restart nginx
-
-echo "Setup completed successfully!"
-echo "Please ensure your DNS settings are configured correctly:"
-echo "A Record: @ -> 18.116.81.42"
-echo "A Record: www -> 18.116.81.42"
-echo "AAAA Record: @ -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b"
-echo "AAAA Record: www -> 2600:1f16:851:b900:3e63:6d69:e839:1a2b" 
+sudo docker-compose restart nginx 

@@ -15,6 +15,12 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_DEBUG=0
       - DOMAIN=solforge.live
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
     depends_on:
       - redis
 
@@ -29,6 +35,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
     depends_on:
       - web
 
@@ -36,6 +48,7 @@ services:
     image: redis:alpine
     expose:
       - 6379
+    restart: unless-stopped
 
   certbot:
     image: certbot/certbot
@@ -43,7 +56,12 @@ services:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
 
 volumes:
   static_volume:
-  media_volume: 
+  media_volume:
+
+networks:
+  default:
+    driver: bridge 

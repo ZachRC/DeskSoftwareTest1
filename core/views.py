@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 import stripe
 import json
@@ -180,3 +180,6 @@ def delete_account(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+def health_check(request):
+    return HttpResponse("OK")

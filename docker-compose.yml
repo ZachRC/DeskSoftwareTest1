@@ -7,9 +7,15 @@ services:
     env_file:
       - .env
     volumes:
+      - .:/app
       - static_volume:/app/staticfiles
     expose:
       - 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     image: nginx:alpine
@@ -17,6 +23,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - ./nginx:/etc/nginx/conf.d
+      - /etc/nginx/ssl:/etc/nginx/ssl:ro
     ports:
       - "80:80"
       - "443:443"

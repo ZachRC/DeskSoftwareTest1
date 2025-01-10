@@ -12,6 +12,7 @@ urlpatterns = [
     path('create-subscription/', views.create_subscription, name='create_subscription'),
     path('cancel-subscription/', views.cancel_subscription, name='cancel_subscription'),
     path('delete-account/', views.delete_account, name='delete_account'),
+    path('health/', views.health_check, name='health_check'),
     
     # API endpoints
     path('api/auth/verify/', api.verify_auth, name='api_verify_auth'),

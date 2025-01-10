@@ -22,23 +22,22 @@ COPY requirements.txt .
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-# Copy project
-COPY . .
+# Create non-root user
+RUN useradd -m myuser
 
 # Create directories for static and media files
-RUN mkdir -p /app/staticfiles /app/media /app/static
-
-# Set permissions
-RUN chown -R root:root /app \
+RUN mkdir -p /app/staticfiles /app/media /app/static \
+    && chown -R myuser:myuser /app \
     && chmod -R 755 /app
+
+# Copy project files
+COPY --chown=myuser:myuser . .
 
 # Generate a temporary secret key for collectstatic
 ENV DJANGO_SECRET_KEY "temporary-key-for-collectstatic"
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --clear
+# Switch to non-root user
+USER myuser
 
-# Run as non-root user
-RUN useradd -m myuser
-RUN chown -R myuser:myuser /app/staticfiles /app/media
-USER myuser 
+# Collect static files
+RUN python manage.py collectstatic --noinput --clear 

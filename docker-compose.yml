@@ -5,8 +5,8 @@ services:
     build: .
     command: gunicorn tiktok_commenter.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - ./staticfiles:/app/staticfiles
-      - ./media:/app/media
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     expose:
       - 8000
     environment:
@@ -22,8 +22,8 @@ services:
   nginx:
     build: ./nginx
     volumes:
-      - ./staticfiles:/app/staticfiles
-      - ./media:/app/media
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
@@ -54,6 +54,8 @@ services:
 
 volumes:
   redis_data:
+  static_volume:
+  media_volume:
 
 networks:
   default:

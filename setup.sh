@@ -74,10 +74,7 @@ cd webapp
 echo "Creating directories..."
 sudo mkdir -p nginx/conf.d \
          certbot/conf \
-         certbot/www \
-         static \
-         media \
-         staticfiles
+         certbot/www
 
 # Set proper permissions
 echo "Setting permissions..."
@@ -123,6 +120,11 @@ ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers off;
 ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";
 EOL
+
+# Create Docker volumes
+echo "Creating Docker volumes..."
+sudo docker volume create webapp_static_volume
+sudo docker volume create webapp_media_volume
 
 # Pull Docker images
 echo "Pulling Docker images..."

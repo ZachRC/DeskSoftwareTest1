@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
     netcat-traditional \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -36,5 +37,18 @@ RUN python manage.py collectstatic --noinput
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn with health check
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "120", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-", "tiktok_commenter.wsgi:application"] 
+# Create gunicorn config
+RUN echo 'import multiprocessing\n\
+bind = "0.0.0.0:8000"\n\
+workers = 3\n\
+timeout = 120\n\
+keepalive = 5\n\
+worker_class = "sync"\n\
+worker_connections = 1000\n\
+accesslog = "-"\n\
+errorlog = "-"\n\
+loglevel = "info"\n\
+' > /app/gunicorn.conf.py
+
+# Run gunicorn with config
+CMD ["gunicorn", "--config", "/app/gunicorn.conf.py", "tiktok_commenter.wsgi:application"] 

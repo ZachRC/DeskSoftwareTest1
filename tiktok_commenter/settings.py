@@ -163,6 +163,7 @@ SUBSCRIPTION_PRICE_AMOUNT = 600  # $6.00 in cents
 # Security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    SECURE_SSL_HOST = 'kingfakes.college'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
@@ -171,6 +172,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_REDIRECT_EXEMPT = [r'^health/$']  # Exclude health check from HTTPS redirect
 
 # CORS settings for production
 CORS_ALLOWED_ORIGINS = [

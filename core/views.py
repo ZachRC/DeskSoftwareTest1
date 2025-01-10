@@ -8,6 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 import stripe
 import json
+from django.views.decorators.csrf import csrf_exempt
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -181,5 +182,7 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+@csrf_exempt
 def health_check(request):
-    return HttpResponse("OK")
+    """Health check endpoint that doesn't redirect to HTTPS"""
+    return HttpResponse("OK", status=200)

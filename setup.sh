@@ -8,6 +8,11 @@ cleanup() {
     echo "Cleaning up..."
     sudo docker-compose down -v 2>/dev/null || true
     sudo docker system prune -af --volumes
+    
+    # Clean up directories with proper permissions
+    if [ -d "webapp" ]; then
+        sudo rm -rf webapp
+    fi
 }
 
 # Error handler
@@ -25,7 +30,6 @@ echo "Starting setup..."
 # Clean up any previous installation
 cleanup
 cd ~
-rm -rf webapp
 
 # Update system
 echo "Updating system..."
@@ -68,17 +72,18 @@ cd webapp
 
 # Create necessary directories with proper permissions
 echo "Creating directories..."
-mkdir -p nginx/conf.d \
+sudo mkdir -p nginx/conf.d \
          certbot/conf \
          certbot/www \
          static \
          media \
          staticfiles
-chmod -R 755 .
 
 # Set proper permissions
 echo "Setting permissions..."
 sudo chown -R $USER:$USER .
+sudo chmod -R 755 .
+sudo chmod g+s .
 
 # Copy configuration files
 echo "Setting up configuration files..."
@@ -108,6 +113,7 @@ fi
 echo "Creating SSL configuration files..."
 sudo mkdir -p certbot/conf
 sudo openssl dhparam -out certbot/conf/ssl-dhparams.pem 2048
+sudo chown -R $USER:$USER certbot
 
 # Create Nginx SSL options file
 cat > certbot/conf/options-ssl-nginx.conf << EOL
@@ -117,6 +123,14 @@ ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers off;
 ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";
 EOL
+
+# Pull Docker images
+echo "Pulling Docker images..."
+sudo docker-compose pull
+
+# Build the images
+echo "Building Docker images..."
+sudo docker-compose build --no-cache
 
 # Start Nginx container first for certbot
 echo "Starting Nginx for SSL setup..."
@@ -128,6 +142,10 @@ sleep 5
 # Run certbot
 echo "Setting up SSL certificates..."
 sudo docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --email your-email@example.com -d solforge.live -d www.solforge.live --agree-tos --no-eff-email --force-renewal
+
+# Ensure proper permissions for SSL certificates
+sudo chown -R $USER:$USER certbot/conf
+sudo chmod -R 755 certbot/conf
 
 # Start the remaining services
 echo "Starting remaining services..."

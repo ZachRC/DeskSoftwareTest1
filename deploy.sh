@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit on error
+
 # Pull latest changes from git
 git pull origin main
 
@@ -12,31 +14,8 @@ fi
 
 # Install necessary packages
 sudo yum update -y
-sudo yum install -y nginx curl
-sudo systemctl start nginx
-sudo systemctl enable nginx
-
-# Install certbot and its nginx plugin
-sudo yum install -y certbot python3-certbot-nginx
-
-# Stop nginx temporarily for cert installation
-sudo systemctl stop nginx
-
-# Get SSL certificate using standalone mode
-if [ ! -d "/etc/letsencrypt/live/kingfakes.college" ]; then
-    sudo certbot certonly --standalone -d kingfakes.college -d www.kingfakes.college --agree-tos --email zacharyrcherney@gmail.com --non-interactive
-fi
-
-# Create SSL directory and copy certificates with proper permissions
-sudo mkdir -p /etc/nginx/ssl/live/kingfakes.college
-sudo cp /etc/letsencrypt/live/kingfakes.college/fullchain.pem /etc/nginx/ssl/live/kingfakes.college/
-sudo cp /etc/letsencrypt/live/kingfakes.college/privkey.pem /etc/nginx/ssl/live/kingfakes.college/
-sudo chmod -R 755 /etc/nginx/ssl
-sudo chown -R nginx:nginx /etc/nginx/ssl
-
-# Create static directory if it doesn't exist
-mkdir -p static
-sudo chown -R $USER:$USER static
+sudo yum remove -y curl curl-minimal
+sudo yum install -y nginx wget
 
 # Install Docker if not installed
 if ! command -v docker &> /dev/null; then
@@ -54,16 +33,41 @@ if ! command -v docker-compose &> /dev/null; then
     sudo chmod +x /usr/local/bin/docker-compose
 fi
 
-# Stop and remove existing containers
+# Install certbot
+sudo yum install -y certbot python3-certbot-nginx
+
+# Stop services
+sudo systemctl stop nginx
 docker-compose down -v
 
+# Get SSL certificate using standalone mode
+if [ ! -d "/etc/letsencrypt/live/kingfakes.college" ]; then
+    sudo certbot certonly --standalone -d kingfakes.college -d www.kingfakes.college --agree-tos --email zacharyrcherney@gmail.com --non-interactive
+fi
+
+# Create SSL directory and copy certificates with proper permissions
+sudo mkdir -p /etc/nginx/ssl/live/kingfakes.college
+sudo cp /etc/letsencrypt/live/kingfakes.college/fullchain.pem /etc/nginx/ssl/live/kingfakes.college/
+sudo cp /etc/letsencrypt/live/kingfakes.college/privkey.pem /etc/nginx/ssl/live/kingfakes.college/
+sudo chmod -R 755 /etc/nginx/ssl
+sudo chown -R nginx:nginx /etc/nginx/ssl
+
+# Create static directory if it doesn't exist
+mkdir -p static
+sudo chown -R $USER:$USER static
+
 # Build and start Docker containers
+echo "Building and starting Docker containers..."
 docker-compose build --no-cache
 docker-compose up -d
 
 # Wait for web container to be ready
 echo "Waiting for web container to be ready..."
-sleep 15
+sleep 20
+
+# Check container status
+docker ps
+docker-compose logs web
 
 # Run migrations
 docker-compose exec -T web python manage.py migrate
@@ -87,8 +91,7 @@ fi
 # Verify services are running
 echo "Checking service status..."
 docker-compose ps
-sudo systemctl status nginx --no-pager
-sudo systemctl status crond --no-pager
+docker-compose logs --tail=50
 
 echo "Deployment completed successfully!"
 

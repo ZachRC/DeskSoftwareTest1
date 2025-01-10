@@ -3,6 +3,30 @@
 # Exit on error
 set -e
 
+# Cleanup function
+cleanup() {
+    echo "Cleaning up..."
+    sudo docker-compose down 2>/dev/null || true
+    sudo docker system prune -f 2>/dev/null || true
+}
+
+# Error handler
+handle_error() {
+    echo "An error occurred on line $1"
+    cleanup
+    exit 1
+}
+
+# Set up error handling
+trap 'handle_error $LINENO' ERR
+
+echo "Starting setup..."
+
+# Clean up any previous installation
+cleanup
+cd ~
+rm -rf webapp
+
 # Update system
 echo "Updating system..."
 sudo apt-get update
@@ -61,8 +85,18 @@ sudo certbot certonly --nginx -d solforge.live -d www.solforge.live
 
 # Build and start the application
 echo "Building and starting the application..."
-sudo docker-compose build
+sudo docker-compose build --no-cache
 sudo docker-compose up -d
+
+# Verify the application is running
+echo "Verifying application status..."
+sleep 10
+if sudo docker-compose ps | grep -q "Exit"; then
+    echo "Error: Some containers failed to start. Checking logs..."
+    sudo docker-compose logs
+    cleanup
+    exit 1
+fi
 
 echo "Setup completed successfully!"
 echo "Please ensure your DNS settings are configured correctly:"
